@@ -19,6 +19,10 @@ export default async function OGImage() {
     fetchAmberData(),
   ]);
 
+  if (!fuelData || !amberData) {
+    throw new Error("Cannot generate OG image: missing fuel or electricity data");
+  }
+
   const fuelPricePerL = fuelData.averagePrice;
   const electricPricePerKwh = amberData.cheapest36Avg;
 

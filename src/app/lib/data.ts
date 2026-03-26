@@ -8,49 +8,69 @@ interface P03Station {
   state: string;
 }
 
-export async function fetchFuelData(): Promise<FuelData> {
-  const res = await fetch(
-    "https://projectzerothree.info/api.php?format=json",
-    { next: { revalidate: 300 } }
-  );
-  if (!res.ok) throw new Error(`Fuel API: ${res.status}`);
+export async function fetchFuelData(): Promise<FuelData | null> {
+  try {
+    const res = await fetch(
+      "https://projectzerothree.info/api.php?format=json",
+      { next: { revalidate: 300 } }
+    );
+    if (!res.ok) throw new Error(`Fuel API: ${res.status}`);
 
-  const data = await res.json();
+    const data = await res.json();
 
-  const allStations: P03Station[] = [];
-  if (data.regions) {
-    for (const region of data.regions) {
-      if (region.prices) {
-        allStations.push(...region.prices);
+    const allStations: P03Station[] = [];
+    if (data.regions) {
+      for (const region of data.regions) {
+        if (region.prices) {
+          allStations.push(...region.prices);
+        }
       }
     }
+
+    const vicPetrol = allStations.filter(
+      (s: P03Station) => s.state === "VIC" && s.type === "U91"
+    );
+
+    if (vicPetrol.length === 0) {
+      console.error("No VIC U91 prices found in fuel API response");
+      return null;
+    }
+
+    const avgPrice =
+      vicPetrol.reduce((sum: number, s: P03Station) => sum + s.price, 0) /
+      vicPetrol.length;
+
+    return {
+      averagePrice: Math.round(avgPrice * 10) / 10,
+      updatedAt: data.updated || new Date().toISOString(),
+    };
+  } catch (e) {
+    console.error("Failed to fetch fuel data:", e);
+    return null;
   }
-
-  const vicPetrol = allStations.filter(
-    (s: P03Station) => s.state === "VIC" && s.type === "U91"
-  );
-
-  if (vicPetrol.length === 0) throw new Error("No VIC U91 stations found");
-
-  const avgPrice =
-    vicPetrol.reduce((sum: number, s: P03Station) => sum + s.price, 0) /
-    vicPetrol.length;
-
-  return {
-    averagePrice: Math.round(avgPrice * 10) / 10,
-    updatedAt: data.updated || new Date().toISOString(),
-  };
 }
 
 // --- Amber Electric API ---
 
-export async function fetchAmberData(): Promise<AmberData> {
-  const token = process.env.AMBER_API_TOKEN;
-  const siteId = process.env.AMBER_SITE_ID;
+async function getAmberSiteId(token: string): Promise<string> {
+  const res = await fetch("https://api.amber.com.au/v1/sites", {
+    headers: { Authorization: `Bearer ${token}`, Accept: "application/json" },
+    next: { revalidate: 300 },
+  });
+  if (!res.ok) throw new Error(`Amber sites API: ${res.status}`);
+  const sites: { id: string }[] = await res.json();
+  if (sites.length === 0) throw new Error("No Amber sites found for this account");
+  return sites[0].id;
+}
 
-  if (!token || !siteId) {
-    throw new Error("AMBER_API_TOKEN and AMBER_SITE_ID must be set");
+export async function fetchAmberData(): Promise<AmberData | null> {
+  const token = process.env.AMBER_API_TOKEN;
+  if (!token) {
+    console.error("AMBER_API_TOKEN is not set — the app is misconfigured");
+    return null;
   }
+
+  const siteId = process.env.AMBER_SITE_ID || (await getAmberSiteId(token));
 
   const headers = {
     Authorization: `Bearer ${token}`,

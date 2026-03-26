@@ -1,29 +1,5 @@
 @import "tailwindcss";
 
-@font-face {
-  font-family: "GT America Trial";
-  src: url("/fonts/GT-America-Standard-Regular-Trial.woff") format("woff");
-  font-weight: 400;
-  font-style: normal;
-  font-display: swap;
-}
-
-@font-face {
-  font-family: "GT America Trial";
-  src: url("/fonts/GT-America-Standard-Medium-Trial.woff") format("woff");
-  font-weight: 500;
-  font-style: normal;
-  font-display: swap;
-}
-
-@font-face {
-  font-family: "GT America Trial";
-  src: url("/fonts/GT-America-Standard-Bold-Trial.woff") format("woff");
-  font-weight: 700;
-  font-style: normal;
-  font-display: swap;
-}
-
 :root {
   --background: #09090b;
   --foreground: #ededed;
@@ -32,7 +8,7 @@
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: "GT America Trial", system-ui, sans-serif;
+  --font-sans: var(--font-gt-america), system-ui, sans-serif;
 }
 
 body {

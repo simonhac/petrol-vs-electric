@@ -142,8 +142,17 @@ export default function ComparisonBanner({
       </div>
 
       <p className="text-sm text-zinc-500 text-center mt-5">
-        Fuel prices from 7-Eleven stations across Melbourne. Electricity prices
-        from Amber Electric, the average of the cheapest 18 hours over the
+        Fuel prices from 7-Eleven stations across Melbourne according
+        to{" "}
+        <a href="https://projectzerothree.info" className="underline hover:text-zinc-300" target="_blank" rel="noopener noreferrer">
+          ProjectZeroThree
+        </a>
+        . Electricity prices
+        from{" "}
+        <a href="https://www.amber.com.au" className="underline hover:text-zinc-300" target="_blank" rel="noopener noreferrer">
+          Amber Electric
+        </a>
+        , the average of the cheapest 18 hours over the
         last 24. Fuel and electricity consumption from official WLTP figures for
         Australia&apos;s top-selling vehicles (2024). Last
         updated {formatUpdatedAt(amberData.updatedAt)}.

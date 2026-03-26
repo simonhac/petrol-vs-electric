@@ -22,6 +22,20 @@ export default async function Home() {
     fetchAmberData(),
   ]);
 
+  if (!fuelData || !amberData) {
+    const errors: string[] = [];
+    if (!fuelData) errors.push("Failed to fetch fuel prices from ProjectZeroThree.");
+    if (!amberData) errors.push("AMBER_API_TOKEN is not set.");
+    return (
+      <div className="min-h-screen bg-zinc-950 flex items-center justify-center p-4 md:p-8">
+        <div className="text-red-400 text-lg text-center space-y-1">
+          <p>App is misconfigured:</p>
+          {errors.map((e) => <p key={e}>{e}</p>)}
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-zinc-950 flex items-center justify-center p-4 md:p-8">
       <div className="w-full max-w-5xl">
