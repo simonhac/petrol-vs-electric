@@ -27,18 +27,18 @@ export async function fetchFuelData(): Promise<FuelData | null> {
       }
     }
 
-    const vicDiesel = allStations.filter(
-      (s: P03Station) => s.state === "VIC" && s.type === "Diesel"
+    const vicPetrol = allStations.filter(
+      (s: P03Station) => s.state === "VIC" && s.type === "U91"
     );
 
-    if (vicDiesel.length === 0) {
-      console.error("No VIC Diesel prices found in fuel API response");
+    if (vicPetrol.length === 0) {
+      console.error("No VIC U91 prices found in fuel API response");
       return null;
     }
 
     const avgPrice =
-      vicDiesel.reduce((sum: number, s: P03Station) => sum + s.price, 0) /
-      vicDiesel.length;
+      vicPetrol.reduce((sum: number, s: P03Station) => sum + s.price, 0) /
+      vicPetrol.length;
 
     return {
       averagePrice: Math.round(avgPrice * 10) / 10,
