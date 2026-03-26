@@ -6,7 +6,9 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "build:local": "NEXT_BUILD_DIR=.next-build next build",
+    "typecheck": "tsc --noEmit"
   },
   "dependencies": {
     "next": "16.2.1",
