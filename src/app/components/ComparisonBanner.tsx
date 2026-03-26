@@ -143,9 +143,9 @@ export default function ComparisonBanner({
 
       <p className="text-sm text-zinc-500 text-center mt-5">
         Fuel prices from 7-Eleven stations across Melbourne. Electricity prices
-        from Amber Electric. Consumption based on official WLTP figures for
-        Australia&apos;s top-selling vehicles (2024). EV cost uses the average of
-        the cheapest 18 hours in the last 24. Last
+        from Amber Electric, the average of the cheapest 18 hours over the
+        last 24. Fuel and electricity consumption from official WLTP figures for
+        Australia&apos;s top-selling vehicles (2024). Last
         updated {formatUpdatedAt(amberData.updatedAt)}.
       </p>
     </div>
