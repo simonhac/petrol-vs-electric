@@ -55,14 +55,17 @@ export default function OGImage() {
         {/* Subtitle */}
         <div
           style={{
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
             fontSize: 28,
             color: "#a1a1aa",
             textAlign: "center",
-            maxWidth: "800px",
             lineHeight: 1.4,
           }}
         >
-          Live cost per km for the top 10 petrol cars vs top 10 EVs in Melbourne
+          <span>Live cost per km in Melbourne for</span>
+          <span>the top 10 petrol cars vs top 10 EVs</span>
         </div>
 
         {/* Colour bar */}
