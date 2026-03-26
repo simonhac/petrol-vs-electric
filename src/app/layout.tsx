@@ -1,5 +1,29 @@
 import type { Metadata } from "next";
+import localFont from "next/font/local";
 import "./globals.css";
+
+const gtAmerica = localFont({
+  src: [
+    {
+      path: "../fonts/GT-America-Standard-Regular-Trial.woff",
+      weight: "400",
+      style: "normal",
+    },
+    {
+      path: "../fonts/GT-America-Standard-Medium-Trial.woff",
+      weight: "500",
+      style: "normal",
+    },
+    {
+      path: "../fonts/GT-America-Standard-Bold-Trial.woff",
+      weight: "700",
+      style: "normal",
+    },
+  ],
+  display: "block",
+  variable: "--font-gt-america",
+  fallback: ["system-ui", "sans-serif"],
+});
 
 export const metadata: Metadata = {
   metadataBase: new URL("https://petrol-vs-electric.vercel.app"),
@@ -28,7 +52,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className="h-full antialiased">
+    <html lang="en" className={`${gtAmerica.variable} h-full antialiased`}>
       <body className="min-h-full flex flex-col">{children}</body>
     </html>
   );
