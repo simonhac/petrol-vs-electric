@@ -1,5 +1,6 @@
 export interface FuelData {
-  averagePrice: number; // cents per litre
+  petrolPrice: number; // cents per litre (U91)
+  dieselPrice: number; // cents per litre
   updatedAt: string;
 }
 

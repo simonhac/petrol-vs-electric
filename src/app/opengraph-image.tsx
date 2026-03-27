@@ -65,7 +65,7 @@ export default function OGImage() {
           }}
         >
           <span>Live cost per km in Melbourne for</span>
-          <span>the top 10 petrol cars vs top 10 EVs</span>
+          <span>the top 10 petrol &amp; diesel cars vs top 10 EVs</span>
         </div>
 
         {/* Colour bar */}
