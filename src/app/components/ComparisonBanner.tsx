@@ -1,30 +1,11 @@
-import { PETROL_CARS, EVS } from "@/app/lib/constants";
+import { ICE_CARS, EVS, VFACTS_2025_URL } from "@/app/lib/constants";
+import type { Car } from "@/app/lib/constants";
 import { melbourneDate } from "@/app/lib/format";
 import type { FuelData, AmberData } from "@/app/lib/types";
+import FooterNotes from "./FooterNotes";
 
-function formatUpdatedAt(iso: string): string {
-  const d = new Date(iso);
-  const time = d
-    .toLocaleTimeString("en-AU", {
-      hour: "numeric",
-      minute: "2-digit",
-      hour12: true,
-      timeZone: "Australia/Melbourne",
-    })
-    .toLowerCase()
-    .replace(" ", "");
-  const tz = d.toLocaleString("en-AU", {
-    timeZoneName: "short",
-    timeZone: "Australia/Melbourne",
-  });
-  const tzAbbr = tz.split(" ").pop();
-  const date = d.toLocaleDateString("en-AU", {
-    day: "numeric",
-    month: "short",
-    year: "numeric",
-    timeZone: "Australia/Melbourne",
-  });
-  return `${time} ${tzAbbr} ${date}`;
+function formatNumber(n: number): string {
+  return n.toLocaleString("en-AU");
 }
 
 interface ComparisonBannerProps {
@@ -32,19 +13,71 @@ interface ComparisonBannerProps {
   amberData: AmberData;
 }
 
+function CarTooltip({
+  car,
+  unit,
+  fuelPriceCents,
+  fuelUnit,
+  side,
+}: {
+  car: Car & { centsPerKm: number };
+  unit: string;
+  fuelPriceCents: number;
+  fuelUnit: string;
+  side: "left" | "right";
+}) {
+  return (
+    <div
+      className={`absolute top-0 ${side === "left" ? "left-full pl-2" : "right-full pr-2"} z-50 opacity-0 group-hover:opacity-100 pointer-events-none group-hover:pointer-events-auto transition-opacity`}
+    >
+      <div className="rounded-lg bg-zinc-800 border border-zinc-700 p-3 shadow-xl text-sm">
+        <p className="font-semibold text-white mb-2">{car.name}</p>
+        <table className="text-zinc-400 text-sm">
+          <tbody>
+            <tr>
+              <td className="pr-4 py-0.5 whitespace-nowrap">Fuel</td>
+              <td className="py-0.5 whitespace-nowrap">${(fuelPriceCents / 100).toFixed(2)}{fuelUnit}</td>
+            </tr>
+            <tr>
+              <td className="pr-4 py-0.5 whitespace-nowrap">Efficiency</td>
+              <td className="py-0.5 whitespace-nowrap">
+                <a href={car.sourceUrl} className="text-green-400 underline" target="_blank" rel="noopener noreferrer">
+                  {car.consumption.toFixed(1)} {unit}
+                </a>
+              </td>
+            </tr>
+            <tr>
+              <td className="pr-4 py-0.5 whitespace-nowrap">2025 Sales</td>
+              <td className="py-0.5 whitespace-nowrap">
+                <a href={VFACTS_2025_URL} className="text-green-400 underline" target="_blank" rel="noopener noreferrer">
+                  {formatNumber(car.sales)}
+                </a>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
 export default function ComparisonBanner({
   fuelData,
   amberData,
 }: ComparisonBannerProps) {
-  const fuelPricePerL = fuelData.averagePrice; // cents/L
+  const petrolPricePerL = fuelData.petrolPrice; // cents/L
+  const dieselPricePerL = fuelData.dieselPrice; // cents/L
   // Use average of cheapest 36 of last 48 half-hour intervals
   const electricPricePerKwh = amberData.cheapest36Avg; // cents/kWh
 
-  // Petrol: (L/100km) * (cents/L) / 100 = cents/km
-  const petrolCosts = PETROL_CARS.map((car) => ({
-    ...car,
-    centsPerKm: (car.consumption * fuelPricePerL) / 100,
-  })).sort((a, b) => b.centsPerKm - a.centsPerKm);
+  // ICE: (L/100km) * (cents/L) / 100 = cents/km
+  const iceCosts = ICE_CARS.map((car) => {
+    const price = car.fuelType === "diesel" ? dieselPricePerL : petrolPricePerL;
+    return {
+      ...car,
+      centsPerKm: (car.consumption * price) / 100,
+    };
+  }).sort((a, b) => b.centsPerKm - a.centsPerKm);
 
   // EV: (kWh/100km) * (cents/kWh) / 100 = cents/km
   const evCosts = EVS.map((car) => ({
@@ -53,7 +86,7 @@ export default function ComparisonBanner({
   })).sort((a, b) => b.centsPerKm - a.centsPerKm);
 
   const maxCost = Math.max(
-    ...petrolCosts.map((c) => c.centsPerKm),
+    ...iceCosts.map((c) => c.centsPerKm),
     ...evCosts.map((c) => Math.max(c.centsPerKm, 0.1))
   );
 
@@ -63,12 +96,12 @@ export default function ComparisonBanner({
         Cost per Kilometre — {melbourneDate()}
       </h3>
       <p className="text-base text-zinc-500 text-center mb-6">
-        The energy cost of running Australia&apos;s top 10 petrol vs top 10
-        electric cars in Melbourne, right now
+        The energy cost of running Australia&apos;s top 10 petrol &amp; diesel
+        vs top 10 electric cars in Melbourne, right now
       </p>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {/* Petrol cars */}
+        {/* ICE cars */}
         <div>
           <div className="flex items-center gap-3 mb-3">
             <svg
@@ -79,12 +112,15 @@ export default function ComparisonBanner({
               <path d="M19.77 7.23l.01-.01-3.72-3.72L15 4.56l2.11 2.11c-.94.36-1.61 1.26-1.61 2.33a2.5 2.5 0 002.5 2.5c.36 0 .69-.08 1-.21v7.21c0 .55-.45 1-1 1s-1-.45-1-1V14c0-1.1-.9-2-2-2h-1V5c0-1.1-.9-2-2-2H6c-1.1 0-2 .9-2 2v16h10v-7.5h1.5v5a2.5 2.5 0 005 0V9c0-.69-.28-1.32-.73-1.77zM12 10H6V5h6v5z" />
             </svg>
             <span className="text-xl font-semibold text-zinc-400 tracking-wider">
-              Top 10 Petrol @ ${(fuelPricePerL / 100).toFixed(2)}/L
+              Top 10 Petrol &amp; Diesel
             </span>
           </div>
+          <p className="text-sm text-zinc-500 mb-3">
+            U91 ${(petrolPricePerL / 100).toFixed(2)}/L · Diesel ${(dieselPricePerL / 100).toFixed(2)}/L
+          </p>
           <div className="space-y-1.5">
-            {petrolCosts.map((car) => (
-              <div key={car.name} className="flex items-center gap-2">
+            {iceCosts.map((car) => (
+              <div key={car.name} className="group relative flex items-center gap-2">
                 <span className="text-base text-zinc-400 w-[175px] truncate flex-shrink-0">
                   {car.name}
                 </span>
@@ -99,6 +135,7 @@ export default function ComparisonBanner({
                     {car.centsPerKm.toFixed(1)}¢
                   </span>
                 </div>
+                <CarTooltip car={car} unit="L/100km" fuelPriceCents={car.fuelType === "diesel" ? dieselPricePerL : petrolPricePerL} fuelUnit="/L" side="left" />
               </div>
             ))}
           </div>
@@ -118,9 +155,10 @@ export default function ComparisonBanner({
               Top 10 EVs @ {electricPricePerKwh.toFixed(1)}¢/kWh avg
             </span>
           </div>
+          <p className="text-sm text-zinc-500 mb-3">&nbsp;</p>
           <div className="space-y-1.5">
             {evCosts.map((car) => (
-              <div key={car.name} className="flex items-center gap-2">
+              <div key={car.name} className="group relative flex items-center gap-2">
                 <span className="text-base text-zinc-400 w-[175px] truncate flex-shrink-0">
                   {car.name}
                 </span>
@@ -135,28 +173,14 @@ export default function ComparisonBanner({
                     {car.centsPerKm.toFixed(1)}¢
                   </span>
                 </div>
+                <CarTooltip car={car} unit="kWh/100km" fuelPriceCents={electricPricePerKwh} fuelUnit="/kWh" side="right" />
               </div>
             ))}
           </div>
         </div>
       </div>
 
-      <p className="text-sm text-zinc-500 text-center mt-5">
-        Fuel prices from 7-Eleven stations across Melbourne according
-        to{" "}
-        <a href="https://projectzerothree.info" className="underline hover:text-zinc-300" target="_blank" rel="noopener noreferrer">
-          ProjectZeroThree
-        </a>
-        . Electricity prices
-        from{" "}
-        <a href="https://www.amber.com.au" className="underline hover:text-zinc-300" target="_blank" rel="noopener noreferrer">
-          Amber Electric
-        </a>
-        , the average of the cheapest 18 hours over the
-        last 24. Fuel and electricity consumption from official WLTP figures for
-        Australia&apos;s top-selling vehicles (2024). Last
-        updated {formatUpdatedAt(amberData.updatedAt)}.
-      </p>
+      <FooterNotes updatedAt={amberData.updatedAt} className="mt-5" />
     </div>
   );
 }

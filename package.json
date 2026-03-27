@@ -8,7 +8,8 @@
     "start": "next start",
     "lint": "eslint",
     "build:local": "NEXT_BUILD_DIR=.next-build next build",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "setup": "npx vercel env pull .env.local"
   },
   "dependencies": {
     "next": "16.2.1",

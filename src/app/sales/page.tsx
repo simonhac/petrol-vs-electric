@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { PETROL_CARS, EVS } from "@/app/lib/constants";
+import { ICE_CARS, EVS, VFACTS_2025_URL } from "@/app/lib/constants";
 
 export const metadata: Metadata = {
   title: "Sales Data — Petrol vs Electric",
@@ -12,7 +12,7 @@ function formatNumber(n: number): string {
 }
 
 export default function SalesPage() {
-  const petrolTotal = PETROL_CARS.reduce((s, c) => s + c.sales, 0);
+  const iceTotal = ICE_CARS.reduce((s, c) => s + c.sales, 0);
   const evTotal = EVS.reduce((s, c) => s + c.sales, 0);
 
   return (
@@ -32,7 +32,7 @@ export default function SalesPage() {
           </p>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-            {/* Petrol */}
+            {/* Petrol & Diesel */}
             <div>
               <h4 className="text-xl font-semibold text-zinc-400 mb-3 flex items-center gap-2">
                 <svg
@@ -42,7 +42,7 @@ export default function SalesPage() {
                 >
                   <path d="M19.77 7.23l.01-.01-3.72-3.72L15 4.56l2.11 2.11c-.94.36-1.61 1.26-1.61 2.33a2.5 2.5 0 002.5 2.5c.36 0 .69-.08 1-.21v7.21c0 .55-.45 1-1 1s-1-.45-1-1V14c0-1.1-.9-2-2-2h-1V5c0-1.1-.9-2-2-2H6c-1.1 0-2 .9-2 2v16h10v-7.5h1.5v5a2.5 2.5 0 005 0V9c0-.69-.28-1.32-.73-1.77zM12 10H6V5h6v5z" />
                 </svg>
-                Top 10 Petrol (2024)
+                Top 10 Petrol &amp; Diesel (2025)
               </h4>
               <table className="w-full text-sm">
                 <thead>
@@ -53,12 +53,17 @@ export default function SalesPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {PETROL_CARS.map((car) => (
+                  {ICE_CARS.map((car) => (
                     <tr
                       key={car.name}
                       className="border-b border-zinc-800/50 text-zinc-300"
                     >
-                      <td className="py-1.5">{car.name}</td>
+                      <td className="py-1.5">
+                        {car.name}
+                        {car.fuelType === "diesel" && (
+                          <span className="text-zinc-500 text-xs ml-1">D</span>
+                        )}
+                      </td>
                       <td className="text-right py-1.5 tabular-nums">
                         {formatNumber(car.sales)}
                       </td>
@@ -70,7 +75,7 @@ export default function SalesPage() {
                   <tr className="text-zinc-400 font-medium">
                     <td className="py-2">Total</td>
                     <td className="text-right py-2 tabular-nums">
-                      {formatNumber(petrolTotal)}
+                      {formatNumber(iceTotal)}
                     </td>
                     <td className="text-right py-2"></td>
                   </tr>
@@ -129,23 +134,14 @@ export default function SalesPage() {
             <p className="font-medium text-zinc-400">Sources</p>
             <ul className="list-disc list-inside space-y-0.5">
               <li>
-                Petrol car sales: 2024 full-year VFACTS via{" "}
+                Petrol &amp; diesel car sales: 2025 full-year VFACTS via{" "}
                 <a
-                  href="https://www.racv.com.au/royalauto/transport/cars/australian-new-car-sales-2024.html"
+                  href="https://www.racv.com.au/royalauto/transport/cars/australian-new-car-sales-2025.html"
                   className="text-green-400 underline"
                   target="_blank"
                   rel="noopener noreferrer"
                 >
                   RACV
-                </a>{" "}
-                and{" "}
-                <a
-                  href="https://www.carexpert.com.au/car-news/vfacts-2024-new-vehicle-sales-hit-record-high-but-slump-expected-soon"
-                  className="text-green-400 underline"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  CarExpert
                 </a>
               </li>
               <li>
@@ -169,8 +165,15 @@ export default function SalesPage() {
                 </a>
               </li>
               <li>
-                Fuel consumption figures: official WLTP combined ratings for
-                Australian-specification vehicles
+                Fuel consumption figures: official WLTP combined ratings from the{" "}
+                <a
+                  href="https://www.greenvehicleguide.gov.au"
+                  className="text-green-400 underline"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  Green Vehicle Guide
+                </a>
               </li>
             </ul>
           </div>

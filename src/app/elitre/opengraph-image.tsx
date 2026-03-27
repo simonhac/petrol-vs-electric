@@ -1,6 +1,6 @@
 import { ImageResponse } from "next/og";
 import { fetchFuelData, fetchAmberData } from "@/app/lib/data";
-import { PETROL_CARS, EVS } from "@/app/lib/constants";
+import { ICE_CARS, EVS } from "@/app/lib/constants";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 300;
@@ -23,20 +23,28 @@ export default async function OGImage() {
     throw new Error("Cannot generate OG image: missing fuel or electricity data");
   }
 
-  const fuelPricePerL = fuelData.averagePrice;
   const electricPricePerKwh = amberData.cheapest36Avg;
 
-  const avgPetrol = weightedAvg(PETROL_CARS);
+  // Weighted average fuel price across petrol + diesel cars
+  const totalSales = ICE_CARS.reduce((s, c) => s + c.sales, 0);
+  const weightedFuelPrice =
+    ICE_CARS.reduce((s, c) => {
+      const price =
+        c.fuelType === "diesel" ? fuelData.dieselPrice : fuelData.petrolPrice;
+      return s + price * c.sales;
+    }, 0) / totalSales;
+
+  const avgIce = weightedAvg(ICE_CARS);
   const avgEv = weightedAvg(EVS);
-  const eLitreKwh = avgEv / avgPetrol;
+  const eLitreKwh = avgEv / avgIce;
   const eLitreCents = eLitreKwh * electricPricePerKwh;
 
-  const petrolDollars = `$${(fuelPricePerL / 100).toFixed(2)}`;
+  const fuelDollars = `$${(weightedFuelPrice / 100).toFixed(2)}`;
   const eLitreDollars = `$${(eLitreCents / 100).toFixed(2)}`;
 
-  const maxVal = Math.max(fuelPricePerL / 100, eLitreCents / 100);
+  const maxVal = Math.max(weightedFuelPrice / 100, eLitreCents / 100);
   const maxBarH = 260;
-  const petrolBarH = ((fuelPricePerL / 100) / maxVal) * maxBarH;
+  const fuelBarH = ((weightedFuelPrice / 100) / maxVal) * maxBarH;
   const eLitreBarH = ((eLitreCents / 100) / maxVal) * maxBarH;
 
   return new ImageResponse(
@@ -90,12 +98,12 @@ export default async function OGImage() {
             }}
           >
             <div style={{ fontSize: 36, fontWeight: 700, color: "#ef4444" }}>
-              {petrolDollars}
+              {fuelDollars}
             </div>
             <div
               style={{
                 width: "120px",
-                height: `${petrolBarH}px`,
+                height: `${fuelBarH}px`,
                 background: "#ef4444cc",
                 borderRadius: "8px 8px 0 0",
               }}

@@ -1,31 +1,7 @@
-import { PETROL_CARS, EVS } from "@/app/lib/constants";
+import { ICE_CARS, EVS } from "@/app/lib/constants";
 import { melbourneDate } from "@/app/lib/format";
 import type { FuelData, AmberData } from "@/app/lib/types";
-
-function formatUpdatedAt(iso: string): string {
-  const d = new Date(iso);
-  const time = d
-    .toLocaleTimeString("en-AU", {
-      hour: "numeric",
-      minute: "2-digit",
-      hour12: true,
-      timeZone: "Australia/Melbourne",
-    })
-    .toLowerCase()
-    .replace(" ", "");
-  const tz = d.toLocaleString("en-AU", {
-    timeZoneName: "short",
-    timeZone: "Australia/Melbourne",
-  });
-  const tzAbbr = tz.split(" ").pop();
-  const date = d.toLocaleDateString("en-AU", {
-    day: "numeric",
-    month: "short",
-    year: "numeric",
-    timeZone: "Australia/Melbourne",
-  });
-  return `${time} ${tzAbbr} ${date}`;
-}
+import FooterNotes from "./FooterNotes";
 
 function weightedAvg(items: { consumption: number; sales: number }[]): number {
   const totalSales = items.reduce((s, i) => s + i.sales, 0);
@@ -42,14 +18,22 @@ export default function ELitreBanner({
   fuelData,
   amberData,
 }: ELitreBannerProps) {
-  const fuelPricePerL = fuelData.averagePrice; // cents/L
   const electricPricePerKwh = amberData.cheapest36Avg; // cents/kWh
 
-  const avgPetrolConsumption = weightedAvg(PETROL_CARS); // L/100km
+  // Weighted average fuel price across petrol + diesel cars
+  const totalSales = ICE_CARS.reduce((s, c) => s + c.sales, 0);
+  const weightedFuelPrice =
+    ICE_CARS.reduce((s, c) => {
+      const price =
+        c.fuelType === "diesel" ? fuelData.dieselPrice : fuelData.petrolPrice;
+      return s + price * c.sales;
+    }, 0) / totalSales;
+
+  const avgIceConsumption = weightedAvg(ICE_CARS); // L/100km
   const avgEvConsumption = weightedAvg(EVS); // kWh/100km
 
-  // kWh in one eLitre = avg EV consumption / avg petrol consumption
-  const eLitreKwh = avgEvConsumption / avgPetrolConsumption;
+  // kWh in one eLitre = avg EV consumption / avg ICE consumption
+  const eLitreKwh = avgEvConsumption / avgIceConsumption;
   // cost of one eLitre in cents
   const eLitreCents = eLitreKwh * electricPricePerKwh;
 
@@ -60,13 +44,13 @@ export default function ELitreBanner({
       </h3>
       <p className="text-base text-zinc-500 text-center mb-8 max-w-2xl mx-auto">
         How much does it cost in electricity to drive the average EV as far
-        <br />as one litre of petrol takes the average petrol car?
+        <br />as one litre of fuel takes the average petrol/diesel car?
       </p>
 
-      {/* Hero comparison — petrol left, chart centre, eLitre right */}
+      {/* Hero comparison — fuel left, chart centre, eLitre right */}
       <div className="bg-zinc-800 rounded-xl p-6 mb-8 mx-auto" style={{ maxWidth: "712px" }}>
         <div className="flex items-end justify-center gap-6 md:gap-10">
-          {/* Petrol — left */}
+          {/* Fuel — left */}
           <div className="text-center flex-1 max-w-[200px]">
             <div className="flex items-center justify-center gap-2 mb-2">
               <svg
@@ -77,35 +61,35 @@ export default function ELitreBanner({
                 <path d="M19.77 7.23l.01-.01-3.72-3.72L15 4.56l2.11 2.11c-.94.36-1.61 1.26-1.61 2.33a2.5 2.5 0 002.5 2.5c.36 0 .69-.08 1-.21v7.21c0 .55-.45 1-1 1s-1-.45-1-1V14c0-1.1-.9-2-2-2h-1V5c0-1.1-.9-2-2-2H6c-1.1 0-2 .9-2 2v16h10v-7.5h1.5v5a2.5 2.5 0 005 0V9c0-.69-.28-1.32-.73-1.77zM12 10H6V5h6v5z" />
               </svg>
               <span className="text-sm font-semibold text-zinc-400">
-                1 litre petrol
+                1 litre fuel
               </span>
             </div>
             <div className="text-4xl md:text-5xl font-bold text-red-400">
-              ${(fuelPricePerL / 100).toFixed(2)}
+              ${(weightedFuelPrice / 100).toFixed(2)}
             </div>
             <p className="text-xs text-zinc-500 mt-1">
-              Melbourne avg (U91)
+              Melbourne weighted avg
             </p>
           </div>
 
           {/* Column chart — centre */}
           <div className="flex items-end gap-3 h-[310px]">
             {(() => {
-              const petrolDollars = fuelPricePerL / 100;
+              const fuelDollars = weightedFuelPrice / 100;
               const eLitreDollars = eLitreCents / 100;
-              const maxVal = Math.max(petrolDollars, eLitreDollars);
+              const maxVal = Math.max(fuelDollars, eLitreDollars);
               const maxHeight = 290; // px
-              const petrolHeight = (petrolDollars / maxVal) * maxHeight;
+              const fuelHeight = (fuelDollars / maxVal) * maxHeight;
               const eLitreHeight = (eLitreDollars / maxVal) * maxHeight;
               return (
                 <>
                   <div className="flex flex-col items-center gap-1">
                     <span className="text-xs text-zinc-500 font-medium">
-                      ${petrolDollars.toFixed(2)}
+                      ${fuelDollars.toFixed(2)}
                     </span>
                     <div
                       className="bg-red-500/80 rounded-t"
-                      style={{ width: "75px", height: `${petrolHeight}px` }}
+                      style={{ width: "75px", height: `${fuelHeight}px` }}
                     />
                   </div>
                   <div className="flex flex-col items-center gap-1">
@@ -153,13 +137,13 @@ export default function ELitreBanner({
         </h4>
         <div className="space-y-2 text-sm text-zinc-400">
           <p>
-            The average petrol car (sales-weighted) uses{" "}
+            The average petrol/diesel car (sales-weighted) uses{" "}
             <span className="text-white font-medium">
-              {avgPetrolConsumption.toFixed(1)} L/100km
+              {avgIceConsumption.toFixed(1)} L/100km
             </span>
             , so one litre gets you{" "}
             <span className="text-white font-medium">
-              {(100 / avgPetrolConsumption).toFixed(1)} km
+              {(100 / avgIceConsumption).toFixed(1)} km
             </span>
             .
           </p>
@@ -170,7 +154,7 @@ export default function ELitreBanner({
             </span>
             , so to cover that same{" "}
             <span className="text-white font-medium">
-              {(100 / avgPetrolConsumption).toFixed(1)} km
+              {(100 / avgIceConsumption).toFixed(1)} km
             </span>{" "}
             it needs{" "}
             <span className="text-white font-medium">
@@ -196,18 +180,7 @@ export default function ELitreBanner({
         </div>
       </div>
 
-      <p className="text-sm text-zinc-500 text-center">
-        Averages weighted by Australian sales (petrol: 2024{" "}
-        <a href="https://www.fcai.com.au/sales" className="text-zinc-400 underline" target="_blank" rel="noopener noreferrer">VFACTS</a>
-        , EVs: 2025{" "}
-        <a href="https://www.fcai.com.au/sales" className="text-zinc-400 underline" target="_blank" rel="noopener noreferrer">VFACTS</a>
-        ). Fuel prices from{" "}
-        <a href="https://projectzerothree.info/" className="text-zinc-400 underline" target="_blank" rel="noopener noreferrer">7-Eleven stations</a>
-        {" "}across Melbourne. Electricity from{" "}
-        <a href="https://www.amber.com.au/" className="text-zinc-400 underline" target="_blank" rel="noopener noreferrer">Amber Electric</a>
-        , cheapest 18 hours of the last 24.
-        <br />Last updated {formatUpdatedAt(amberData.updatedAt)}.
-      </p>
+      <FooterNotes updatedAt={amberData.updatedAt} />
     </div>
   );
 }
