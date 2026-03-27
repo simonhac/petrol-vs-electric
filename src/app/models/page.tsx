@@ -1,25 +1,23 @@
 import type { Metadata } from "next";
 import { fetchFuelData, fetchAmberData } from "@/app/lib/data";
 import { melbourneDate } from "@/app/lib/format";
-import ELitreBanner from "@/app/components/ELitreBanner";
+import ComparisonBanner from "@/app/components/ComparisonBanner";
 import PageShell from "@/app/components/PageShell";
 
 export const dynamic = "force-dynamic";
-export const revalidate = 300;
+export const revalidate = 300; // 5 minutes
 
 export function generateMetadata(): Metadata {
   const date = melbourneDate();
-  const title = `Melbourne\u2019s eLitre — ${date}`;
+  const title = `Cost per Kilometre — ${date}`;
   return {
     title,
-    description:
-      "How much does a litre-equivalent of electricity cost? Live comparison using real fuel and electricity prices in Melbourne.",
     openGraph: { title },
     twitter: { title },
   };
 }
 
-export default async function ELitrePage() {
+export default async function ModelsPage() {
   const [fuelData, amberData] = await Promise.all([
     fetchFuelData(),
     fetchAmberData(),
@@ -40,8 +38,8 @@ export default async function ELitrePage() {
   }
 
   return (
-    <PageShell maxWidth="850px" seeAlso={{ href: "/models", label: "Cost per Kilometre" }}>
-      <ELitreBanner fuelData={fuelData} amberData={amberData} />
+    <PageShell maxWidth="1024px" seeAlso={{ href: "/elitre", label: "The eLitre" }}>
+      <ComparisonBanner fuelData={fuelData} amberData={amberData} />
     </PageShell>
   );
 }
