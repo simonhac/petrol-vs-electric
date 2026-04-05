@@ -40,7 +40,7 @@ export default async function ELitrePage() {
   }
 
   return (
-    <PageShell maxWidth="850px" seeAlso={{ href: "/models", label: "Cost per Kilometre" }}>
+    <PageShell maxWidth="850px">
       <ELitreBanner fuelData={fuelData} amberData={amberData} />
     </PageShell>
   );

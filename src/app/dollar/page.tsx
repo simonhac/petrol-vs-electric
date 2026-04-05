@@ -40,7 +40,7 @@ export default async function DollarPage() {
   }
 
   return (
-    <PageShell maxWidth="850px" seeAlso={{ href: "/elitre", label: "The eLitre" }}>
+    <PageShell maxWidth="850px">
       <DollarBanner fuelData={fuelData} amberData={amberData} />
     </PageShell>
   );

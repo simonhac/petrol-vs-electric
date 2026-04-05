@@ -38,7 +38,7 @@ export default async function ModelsPage() {
   }
 
   return (
-    <PageShell maxWidth="1024px" seeAlso={{ href: "/elitre", label: "The eLitre" }}>
+    <PageShell maxWidth="1024px">
       <ComparisonBanner fuelData={fuelData} amberData={amberData} />
     </PageShell>
   );
