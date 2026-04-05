@@ -2,7 +2,7 @@ import { melbourneDate } from "@/app/lib/format";
 
 interface BannerHeadingProps {
   title: string;
-  description: string;
+  description: React.ReactNode;
 }
 
 export default function BannerHeading({

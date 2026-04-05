@@ -1,23 +1,25 @@
 import type { Metadata } from "next";
 import { fetchFuelData, fetchAmberData } from "@/app/lib/data";
 import { melbourneDate } from "@/app/lib/format";
-import ComparisonBanner from "@/app/components/ComparisonBanner";
+import DollarBanner from "@/app/components/DollarBanner";
 import PageShell from "@/app/components/PageShell";
 
 export const dynamic = "force-dynamic";
-export const revalidate = 300; // 5 minutes
+export const revalidate = 300;
 
 export function generateMetadata(): Metadata {
   const date = melbourneDate();
-  const title = `Cost per Kilometre — ${date}`;
+  const title = `How far on a dollar — ${date}`;
   return {
     title,
+    description:
+      "How far can $1 of petrol take the average car vs $1 of electricity in an EV? Live comparison using real fuel and electricity prices in Melbourne.",
     openGraph: { title },
     twitter: { title },
   };
 }
 
-export default async function ModelsPage() {
+export default async function DollarPage() {
   const [fuelData, amberData] = await Promise.all([
     fetchFuelData(),
     fetchAmberData(),
@@ -38,8 +40,8 @@ export default async function ModelsPage() {
   }
 
   return (
-    <PageShell maxWidth="1024px">
-      <ComparisonBanner fuelData={fuelData} amberData={amberData} />
+    <PageShell maxWidth="850px">
+      <DollarBanner fuelData={fuelData} amberData={amberData} />
     </PageShell>
   );
 }
