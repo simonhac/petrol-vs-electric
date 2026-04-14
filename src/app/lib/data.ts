@@ -12,7 +12,7 @@ export async function fetchFuelData(): Promise<FuelData | null> {
   try {
     const res = await fetch(
       "https://projectzerothree.info/api.php?format=json",
-      { next: { revalidate: 300 } }
+      { next: { revalidate: 3600 } }
     );
     if (!res.ok) throw new Error(`Fuel API: ${res.status}`);
 
@@ -62,7 +62,7 @@ export async function fetchFuelData(): Promise<FuelData | null> {
 async function getAmberSiteId(token: string): Promise<string> {
   const res = await fetch("https://api.amber.com.au/v1/sites", {
     headers: { Authorization: `Bearer ${token}`, Accept: "application/json" },
-    next: { revalidate: 300 },
+    next: { revalidate: 3600 },
   });
   if (!res.ok) throw new Error(`Amber sites API: ${res.status}`);
   const sites: { id: string }[] = await res.json();
@@ -147,7 +147,7 @@ export async function fetchAmberData(): Promise<AmberData | null> {
   // Fetch current interval (for real-time display)
   const currentRes = await fetch(
     `https://api.amber.com.au/v1/sites/${siteId}/prices/current?previous=0&next=0&resolution=30`,
-    { headers, next: { revalidate: 300 } }
+    { headers, next: { revalidate: 3600 } }
   );
   if (!currentRes.ok) throw new Error(`Amber current prices: ${currentRes.status}`);
   const currentPrices: AmberInterval[] = await currentRes.json();
@@ -161,12 +161,15 @@ export async function fetchAmberData(): Promise<AmberData | null> {
   const batchSize = 7;
   let allIntervals: AmberInterval[];
   try {
-    const batches: AmberInterval[][] = [];
-    for (let i = 0; i < Math.ceil(numDays / batchSize); i++) {
-      const batchEnd = melbourneDate(i * batchSize + 1);
-      const batchStart = melbourneDate(Math.min((i + 1) * batchSize, numDays));
-      batches.push(await fetchAmberDateRange(siteId, headers, batchStart, batchEnd));
-    }
+    const batchCount = Math.ceil(numDays / batchSize);
+    const batches = await Promise.all(
+      Array.from({ length: batchCount }, async (_, i) => {
+        if (i > 0) await new Promise((r) => setTimeout(r, i * 200));
+        const batchEnd = melbourneDate(i * batchSize + 1);
+        const batchStart = melbourneDate(Math.min((i + 1) * batchSize, numDays));
+        return fetchAmberDateRange(siteId, headers, batchStart, batchEnd);
+      })
+    );
     allIntervals = batches.flat();
   } catch (e) {
     console.warn("Amber pricing unavailable:", (e as Error).message);
@@ -205,7 +208,7 @@ export async function fetchAmberData(): Promise<AmberData | null> {
   try {
     const renewRes = await fetch(
       "https://api.amber.com.au/v1/state/vic/renewables/current",
-      { next: { revalidate: 300 } }
+      { next: { revalidate: 3600 } }
     );
     if (renewRes.ok) {
       const renewData = await renewRes.json();
