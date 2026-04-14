@@ -35,12 +35,12 @@ export interface AmberSummary {
   minOfMins: number;
   maxOfMaxes: number;
   avgOfAvgs: number;
-  avgOfCheapest18Hr: number; // the headline number — 7-day average of daily cheapest-18hr
+  avgOfCheapest18Hr: number; // the headline number — 28-day average of daily cheapest-18hr
 }
 
 export interface AmberData {
   current: AmberInterval | null;
-  days: AmberDayStats[]; // per-day breakdowns (up to 7)
+  days: AmberDayStats[]; // per-day breakdowns (up to 28)
   summary: AmberSummary;
   cheapest36Avg: number; // alias for summary.avgOfCheapest18Hr (backward compat)
   renewables: number;
