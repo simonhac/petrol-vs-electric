@@ -47,8 +47,7 @@ export default function FooterNotes({
         <a href="https://www.amber.com.au" className="underline hover:text-zinc-300" target="_blank" rel="noopener noreferrer">
           Amber Electric
         </a>
-        , the average of the cheapest 18 hours over the
-        last 24. Vehicle fuel and electricity consumption data from official WLTP
+        , the 7-day average of each day&apos;s cheapest 18 hours. Vehicle fuel and electricity consumption data from official WLTP
         figures. Sales data from{" "}
         <a href={VFACTS_2025_URL} className="underline hover:text-zinc-300" target="_blank" rel="noopener noreferrer">
           VFACTS 2025

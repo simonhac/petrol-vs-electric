@@ -95,7 +95,7 @@ export default function ComparisonBanner({
             </span>
           </div>
           <p className="text-sm text-zinc-500 mb-3">
-            Amber Electric smart charging rate over past 24 hours = {electricPricePerKwh.toFixed(1)}¢/kWh avg.
+            Amber Electric 7-day smart charging rate = {electricPricePerKwh.toFixed(1)}¢/kWh avg.
           </p>
           <div className="space-y-1.5">
             {evCosts.map((car, i) => (
