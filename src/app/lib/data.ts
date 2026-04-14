@@ -76,18 +76,36 @@ function melbourneDate(daysAgo: number): string {
   return d.toLocaleDateString("en-CA", { timeZone: "Australia/Melbourne" });
 }
 
-/** Fetch all intervals for a single calendar day (Melbourne time) */
-async function fetchAmberDayPrices(
+/** Fetch intervals for a date range up to 7 days (Amber API limit) */
+async function fetchAmberDateRange(
   siteId: string,
   headers: Record<string, string>,
-  date: string
+  startDate: string,
+  endDate: string
 ): Promise<AmberInterval[]> {
   const res = await fetch(
-    `https://api.amber.com.au/v1/sites/${siteId}/prices?startDate=${date}&endDate=${date}&resolution=30`,
+    `https://api.amber.com.au/v1/sites/${siteId}/prices?startDate=${startDate}&endDate=${endDate}&resolution=30`,
     { headers, next: { revalidate: 3600 } }
   );
-  if (!res.ok) throw new Error(`Amber prices for ${date}: ${res.status}`);
+  if (res.status === 429) {
+    throw new Error(`Amber API rate limited on ${startDate}..${endDate}`);
+  }
+  if (!res.ok) throw new Error(`Amber prices for ${startDate}..${endDate}: ${res.status}`);
   return res.json();
+}
+
+/** Group intervals by Melbourne calendar date */
+function groupByDate(intervals: AmberInterval[]): Map<string, AmberInterval[]> {
+  const grouped = new Map<string, AmberInterval[]>();
+  for (const interval of intervals) {
+    const date = new Date(interval.startTime).toLocaleDateString("en-CA", {
+      timeZone: "Australia/Melbourne",
+    });
+    const existing = grouped.get(date) || [];
+    existing.push(interval);
+    grouped.set(date, existing);
+  }
+  return grouped;
 }
 
 /** Compute min/max/avg/cheapest18HrAvg for a day's general intervals */
@@ -138,21 +156,32 @@ export async function fetchAmberData(): Promise<AmberData | null> {
       .filter((p) => p.channelType === "general")
       .find((p) => p.type === "CurrentInterval") || null;
 
-  // Fetch last 7 complete days (yesterday through 7 days ago)
-  const dayDates = Array.from({ length: 7 }, (_, i) => melbourneDate(i + 1));
-  const dayResults = await Promise.allSettled(
-    dayDates.map((date) => fetchAmberDayPrices(siteId, headers, date))
-  );
+  // Fetch complete days in 7-day batches (Amber API max range is 7 days)
+  const numDays = Math.min(28, 365);
+  const batchSize = 7;
+  let allIntervals: AmberInterval[];
+  try {
+    const batches: AmberInterval[][] = [];
+    for (let i = 0; i < Math.ceil(numDays / batchSize); i++) {
+      const batchEnd = melbourneDate(i * batchSize + 1);
+      const batchStart = melbourneDate(Math.min((i + 1) * batchSize, numDays));
+      batches.push(await fetchAmberDateRange(siteId, headers, batchStart, batchEnd));
+    }
+    allIntervals = batches.flat();
+  } catch (e) {
+    console.warn("Amber pricing unavailable:", (e as Error).message);
+    return null;
+  }
+  const grouped = groupByDate(allIntervals);
 
   const days: AmberDayStats[] = [];
-  for (let i = 0; i < dayResults.length; i++) {
-    const result = dayResults[i];
-    if (result.status === "fulfilled" && result.value.length > 0) {
-      days.push(computeDayStats(dayDates[i], result.value));
-    } else if (result.status === "rejected") {
-      console.error(`Amber prices for ${dayDates[i]} failed:`, result.reason);
+  for (const [date, intervals] of grouped) {
+    const general = intervals.filter((p) => p.channelType === "general");
+    if (general.length > 0) {
+      days.push(computeDayStats(date, intervals));
     }
   }
+  days.sort((a, b) => b.date.localeCompare(a.date));
 
   const summary: AmberSummary =
     days.length > 0

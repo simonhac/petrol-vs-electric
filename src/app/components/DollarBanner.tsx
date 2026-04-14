@@ -177,6 +177,13 @@ export default function DollarBanner({
             </span>
             .
           </p>
+          <p>
+            This means that an EV could travel{" "}
+            <span className="text-white font-medium whitespace-nowrap">
+              {(evKmPerDollar / petrolKmPerDollar).toFixed(1)}×
+            </span>
+            {" "}further on just $1 of energy.
+          </p>
         </div>
       </div>
 
