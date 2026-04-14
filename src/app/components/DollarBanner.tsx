@@ -180,6 +180,31 @@ export default function DollarBanner({
         </div>
       </div>
 
+      {/* Amber SmartShift footnote */}
+      <div className="md:bg-zinc-800/50 md:rounded-xl md:p-5 mb-6 mx-auto" style={{ maxWidth: "780px" }}>
+        <SectionHeading>Have we underestimated the EV distance?</SectionHeading>
+        <p className="text-zinc-400" style={{ fontSize: "16px" }}>
+          {(() => {
+            const smartShiftPrice = 4.0; // c/kWh
+            const smartShiftKmPerDollar = (100 / smartShiftPrice) * (100 / avgEvConsumption);
+            const smartShiftMultiplier = smartShiftKmPerDollar / evKmPerDollar;
+            return (
+              <>
+                Amber has contacted the author to report that their SmartShift
+                customers with battery and solar averaged{" "}
+                <span className="text-white font-medium">4.0¢/kWh</span>{" "}
+                during the six months to the end of March{"\u00A0"}2026. At that rate, $1 of
+                electricity would take the average EV{" "}
+                <span className="text-green-400 font-bold whitespace-nowrap">
+                  {smartShiftKmPerDollar.toFixed(1)} km
+                </span>
+                {" "}— {smartShiftMultiplier.toFixed(1)}× further.
+              </>
+            );
+          })()}
+        </p>
+      </div>
+
       <FooterNotes updatedAt={amberData.updatedAt} showWeightedNote />
     </div>
   );
