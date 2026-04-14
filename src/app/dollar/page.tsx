@@ -4,8 +4,7 @@ import { melbourneDate } from "@/app/lib/format";
 import DollarBanner from "@/app/components/DollarBanner";
 import PageShell from "@/app/components/PageShell";
 
-export const dynamic = "force-dynamic";
-export const revalidate = 300;
+export const revalidate = 3600;
 
 export function generateMetadata(): Metadata {
   const date = melbourneDate();
