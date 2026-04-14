@@ -1,4 +1,4 @@
-import type { FuelData, AmberData, AmberInterval } from "./types";
+import type { FuelData, AmberData, AmberInterval, AmberDayStats, AmberSummary } from "./types";
 
 // --- Fuel Prices (ProjectZeroThree / 7-Eleven API) ---
 
@@ -70,6 +70,49 @@ async function getAmberSiteId(token: string): Promise<string> {
   return sites[0].id;
 }
 
+/** Returns YYYY-MM-DD for N days ago in Melbourne timezone */
+function melbourneDate(daysAgo: number): string {
+  const d = new Date();
+  d.setDate(d.getDate() - daysAgo);
+  return d.toLocaleDateString("en-CA", { timeZone: "Australia/Melbourne" });
+}
+
+/** Fetch all intervals for a single calendar day (Melbourne time) */
+async function fetchAmberDayPrices(
+  siteId: string,
+  headers: Record<string, string>,
+  date: string
+): Promise<AmberInterval[]> {
+  const res = await fetch(
+    `https://api.amber.com.au/v1/sites/${siteId}/prices?startDate=${date}&endDate=${date}&resolution=30`,
+    { headers, next: { revalidate: 3600 } }
+  );
+  if (!res.ok) throw new Error(`Amber prices for ${date}: ${res.status}`);
+  return res.json();
+}
+
+/** Compute min/max/avg/cheapest18HrAvg for a day's general intervals */
+function computeDayStats(date: string, allIntervals: AmberInterval[]): AmberDayStats {
+  const intervals = allIntervals.filter((p) => p.channelType === "general");
+  const prices = intervals.map((p) => p.perKwh);
+
+  const min = Math.min(...prices);
+  const max = Math.max(...prices);
+  const avg = prices.reduce((s, v) => s + v, 0) / prices.length;
+
+  const cheapest36 = [...prices].sort((a, b) => a - b).slice(0, 36);
+  const cheapest18HrAvg =
+    cheapest36.reduce((s, v) => s + v, 0) / cheapest36.length;
+
+  return {
+    date,
+    min: Math.round(min * 100) / 100,
+    max: Math.round(max * 100) / 100,
+    avg: Math.round(avg * 100) / 100,
+    cheapest18HrAvg: Math.round(cheapest18HrAvg * 100) / 100,
+  };
+}
+
 export async function fetchAmberData(): Promise<AmberData | null> {
   const token = process.env.AMBER_API_TOKEN;
   if (!token) {
@@ -84,40 +127,52 @@ export async function fetchAmberData(): Promise<AmberData | null> {
     Accept: "application/json",
   };
 
-  const pricesRes = await fetch(
-    `https://api.amber.com.au/v1/sites/${siteId}/prices/current?previous=48&next=12&resolution=30`,
+  // Fetch current interval (for real-time display)
+  const currentRes = await fetch(
+    `https://api.amber.com.au/v1/sites/${siteId}/prices/current?previous=0&next=0&resolution=30`,
     { headers, next: { revalidate: 300 } }
   );
-  if (!pricesRes.ok) throw new Error(`Amber prices: ${pricesRes.status}`);
-  const allPrices: AmberInterval[] = await pricesRes.json();
-
-  const prices = allPrices.filter((p) => p.channelType === "general");
-
+  if (!currentRes.ok) throw new Error(`Amber current prices: ${currentRes.status}`);
+  const currentPrices: AmberInterval[] = await currentRes.json();
   const current =
-    prices.find((p) => p.type === "CurrentInterval") || null;
+    currentPrices
+      .filter((p) => p.channelType === "general")
+      .find((p) => p.type === "CurrentInterval") || null;
 
-  const actuals = prices.filter(
-    (p) => p.type === "ActualInterval" || p.type === "CurrentInterval"
+  // Fetch last 7 complete days (yesterday through 7 days ago)
+  const dayDates = Array.from({ length: 7 }, (_, i) => melbourneDate(i + 1));
+  const dayResults = await Promise.allSettled(
+    dayDates.map((date) => fetchAmberDayPrices(siteId, headers, date))
   );
 
-  const cheapest36 = [...actuals]
-    .sort((a, b) => a.perKwh - b.perKwh)
-    .slice(0, 36);
+  const days: AmberDayStats[] = [];
+  for (let i = 0; i < dayResults.length; i++) {
+    const result = dayResults[i];
+    if (result.status === "fulfilled" && result.value.length > 0) {
+      days.push(computeDayStats(dayDates[i], result.value));
+    } else if (result.status === "rejected") {
+      console.error(`Amber prices for ${dayDates[i]} failed:`, result.reason);
+    }
+  }
 
-  const cheapest36Avg =
-    cheapest36.length > 0
-      ? Math.round(
-          (cheapest36.reduce((s, i) => s + i.perKwh, 0) /
-            cheapest36.length) *
-            10
-        ) / 10
-      : 0;
+  const summary: AmberSummary =
+    days.length > 0
+      ? {
+          minOfMins: Math.round(Math.min(...days.map((d) => d.min)) * 100) / 100,
+          maxOfMaxes: Math.round(Math.max(...days.map((d) => d.max)) * 100) / 100,
+          avgOfAvgs:
+            Math.round(
+              (days.reduce((s, d) => s + d.avg, 0) / days.length) * 100
+            ) / 100,
+          avgOfCheapest18Hr:
+            Math.round(
+              (days.reduce((s, d) => s + d.cheapest18HrAvg, 0) / days.length) *
+                10
+            ) / 10,
+        }
+      : { minOfMins: 0, maxOfMaxes: 0, avgOfAvgs: 0, avgOfCheapest18Hr: 0 };
 
-  const cheapestIntervals = cheapest36.sort(
-    (a, b) =>
-      new Date(a.startTime).getTime() - new Date(b.startTime).getTime()
-  );
-
+  // Renewables
   let renewables = current?.renewables ?? 0;
   try {
     const renewRes = await fetch(
@@ -138,8 +193,9 @@ export async function fetchAmberData(): Promise<AmberData | null> {
 
   return {
     current,
-    cheapestIntervals,
-    cheapest36Avg,
+    days,
+    summary,
+    cheapest36Avg: summary.avgOfCheapest18Hr,
     renewables,
     updatedAt: new Date().toISOString(),
   };
