@@ -70,10 +70,9 @@ async function getAmberSiteId(token: string): Promise<string> {
   return sites[0].id;
 }
 
-/** Returns YYYY-MM-DD for N days ago in Melbourne timezone */
+/** Returns YYYY-MM-DD for N*24h ago in Melbourne timezone */
 function melbourneDate(daysAgo: number): string {
-  const d = new Date();
-  d.setDate(d.getDate() - daysAgo);
+  const d = new Date(Date.now() - daysAgo * 24 * 60 * 60 * 1000);
   return d.toLocaleDateString("en-CA", { timeZone: "Australia/Melbourne" });
 }
 
