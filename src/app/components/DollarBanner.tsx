@@ -206,7 +206,7 @@ export default function DollarBanner({
                   {smartShiftKmPerDollar.toFixed(1)} km
                 </span>
                 {" "}— {smartShiftMultiplier.toFixed(1)}× further than our estimate, or{" "}
-                {(smartShiftKmPerDollar / petrolKmPerDollar).toFixed(1)}× as far as the average conventional vehicle.
+                <span className="text-white font-medium">{(smartShiftKmPerDollar / petrolKmPerDollar).toFixed(1)}× as far as the average conventional vehicle</span>.
               </>
             );
           })()}
